@@ -44,15 +44,16 @@ https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-che
 
 导入模块时可修改 `CronExp`。Egern 使用本机时区。
 
-## 手动签到
+## 在 Egern 中添加模块后，最稳的手动方式是添加“微博超话自动签到”小组件，点击组件里的“立即签到”或“重新签到”。
 
-在 Safari 打开：
+也可以在 Safari 打开以下本地触发地址：
 
 ```text
 http://weibo-checkin.local/run
 ```
 
-也可以把模块的小组件添加到桌面，点击“立即签到”。
+这个地址不是公网网站，只会在 Egern 模块已启用且规则已加载时被接管。若 Safari 显示打不开，优先用小组件按钮；不要把它当普通网页访问。
+
 
 ## 状态说明
 
