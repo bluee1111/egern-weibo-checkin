@@ -36,10 +36,10 @@ https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-che
 
 ## 签到时间
 
-默认每天 08:30：
+默认每天 00:30：
 
 ```text
-30 8 * * *
+30 0 * * *
 ```
 
 导入模块时可修改 `CronExp`。Egern 使用本机时区。
