@@ -63,7 +63,15 @@ async function requestJson(ctx, url, options = {}) {
     ? await ctx.http.post(url, requestOptions)
     : await ctx.http.get(url, requestOptions);
   if (response.status < 200 || response.status >= 300) {
-    throw new Error(`HTTP ${response.status}`);
+    let detail = "";
+    try {
+      const raw = await response.text();
+      detail = String(raw || "").replace(/\\s+/g, " ").slice(0, 240);
+    } catch (_) {}
+    const path = (() => {
+      try { return new URL(url).pathname; } catch (_) { return "request"; }
+    })();
+    throw new Error(`HTTP ${response.status} ${path}${detail ? `：${detail}` : ""}`);
   }
   return response.json();
 }
