@@ -113,16 +113,20 @@ async function captureCookie(ctx) {
   accounts[accountId] = cookie;
   ctx.storage.setJSON(STORAGE_KEY, accounts);
 
+  // 按账号记录指纹：首次抓取或 Cookie 变化时都通知。
+  const fingerprints = ctx.storage.getJSON(LAST_CAPTURE_KEY) || {};
+  const previousFingerprint = fingerprints[accountId] || "";
   const fingerprint = cookieFingerprint(cookie);
-  const firstCapture = ctx.storage.get(LAST_CAPTURE_KEY) !== fingerprint;
-  ctx.storage.set(LAST_CAPTURE_KEY, fingerprint);
+  const shouldNotify = previousFingerprint !== fingerprint;
+  fingerprints[accountId] = fingerprint;
+  ctx.storage.setJSON(LAST_CAPTURE_KEY, fingerprints);
   console.log(`微博账号 ${accountId} Cookie ${changed ? "已保存" : "无变化"}`);
 
-  if (firstCapture) {
+  if (shouldNotify) {
     ctx.notify({
       title: "微博超话签到",
       subtitle: `账号 ${accountId}`,
-      body: "🎈 Cookie 获取成功，已开启自动签到",
+      body: changed ? "Cookie 已更新，自动签到仍在运行" : "Cookie 获取成功，已开启自动签到",
       sound: true,
       duration: 5,
     });
