@@ -67,14 +67,23 @@ async function requestJson(ctx, url, options = {}) {
     headers: options.headers || BASE_HEADERS,
   };
   if (options.body !== undefined) requestOptions.body = options.body;
-  const response = method === "POST"
-    ? await ctx.http.post(url, requestOptions)
-    : await ctx.http.get(url, requestOptions);
+  let response;
+  try {
+    response = method === "POST"
+      ? await ctx.http.post(url, requestOptions)
+      : await ctx.http.get(url, requestOptions);
+  } catch (error) {
+    const message = String(error?.message || error || "");
+    if (/JSON Parse|Unexpected identifier|Unexpected token/i.test(message)) {
+      throw new Error("微博接口返回了非 JSON 内容（可能是风控页或需要重新登录），请重新打开微博 App 点“我”刷新");
+    }
+    throw new Error(`微博接口请求失败：${message.slice(0, 180)}`);
+  }
   if (response.status < 200 || response.status >= 300) {
     let detail = "";
     try {
       const raw = await response.text();
-      detail = String(raw || "").replace(/\\s+/g, " ").slice(0, 240);
+      detail = String(raw || "").replace(/\s+/g, " ").slice(0, 240);
     } catch (_) {}
     const path = (() => {
       try { return new URL(url).pathname; } catch (_) { return "request"; }
