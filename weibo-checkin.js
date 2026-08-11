@@ -3,6 +3,7 @@ const LAST_CAPTURE_KEY = "weibo_super_topic_last_capture";
 const LAST_RESULT_KEY = "weibo_super_topic_last_result";
 const COOKIE_EXPIRED_KEY = "weibo_super_topic_cookie_expired";
 const CAPTURE_DIAG_KEY = "weibo_super_topic_capture_diagnostic";
+const RUNTIME_DIAG_KEY = "weibo_super_topic_runtime_diagnostic";
 const MANUAL_TRIGGER_URL = "http://weibo-checkin.local/run";
 const DIRECT = "DIRECT";
 const USER_AGENT =
@@ -108,7 +109,21 @@ async function notifyCaptureDiagnostic(ctx, body) {
   });
 }
 
+async function notifyRuntime(ctx) {
+  const now = Date.now();
+  const last = Number(ctx.storage.get(RUNTIME_DIAG_KEY) || 0);
+  if (now - last < 5 * 60 * 1000) return;
+  ctx.storage.set(RUNTIME_DIAG_KEY, String(now));
+  ctx.notify({
+    title: "微博模块已运行",
+    body: "请在微博 App 点击“我”后刷新；若无 Cookie 诊断，检查 MITM 证书",
+    sound: false,
+    duration: 6,
+  });
+}
+
 async function captureCookie(ctx) {
+  await notifyRuntime(ctx);
   if (!captureEnabled(ctx)) {
     await notifyCaptureDiagnostic(ctx, "已检测到微博请求，但“自动获取 Cookie”开关已关闭");
     return;
