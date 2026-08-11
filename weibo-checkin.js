@@ -98,7 +98,7 @@ async function fetchLoginState(ctx, cookie) {
 async function notifyCaptureDiagnostic(ctx, body) {
   const now = Date.now();
   const last = Number(ctx.storage.get(CAPTURE_DIAG_KEY) || 0);
-  if (now - last < 5 * 60 * 1000) return;
+  if (now - last < 30 * 1000) return;
   ctx.storage.set(CAPTURE_DIAG_KEY, String(now));
   ctx.notify({
     title: "微博 Cookie 获取诊断",
