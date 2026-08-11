@@ -31,7 +31,7 @@ scriptings:
   - http_request:
       name: "微博 Cookie 获取"
       match: "^https:\\/\\/m\\.weibo\\.cn\\/(api\\/config|api\\/container\\/getIndex|p\\/index)"
-      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=3"
+      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=4"
       timeout: 30
       update_interval: 86400
       enabled: "{{{ENABLE_CAPTURE}}}"
@@ -39,21 +39,21 @@ scriptings:
   - http_request:
       name: "微博超话手动签到"
       match: "^https?:\\/\\/weibo-checkin\\.local\\/run$"
-      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=3"
+      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=4"
       timeout: 300
       update_interval: 86400
 
   - schedule:
       name: "微博超话每日签到"
       cron: "{{{CronExp}}}"
-      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=3"
+      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=4"
       timeout: 300
       update_interval: 86400
       enabled: "{{{ENABLE_SIGN}}}"
 
   - generic:
       name: "weibo-checkin-status"
-      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=3"
+      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-checkin.js?v=4"
       timeout: 30
       update_interval: 86400
 
