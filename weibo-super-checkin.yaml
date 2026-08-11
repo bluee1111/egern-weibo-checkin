@@ -1,0 +1,40 @@
+name: "微博超话自动签到"
+description: "自动获取微博 Cookie 并每日签到已关注超话"
+author: "buleeee1111"
+homepage: "https://github.com/buleeee1111/egern-weibo-checkin"
+icon: "checkmark.circle.fill"
+
+env_schema:
+  ENABLE_CAPTURE:
+    name: "自动获取 Cookie"
+    description: "开启后访问 m.weibo.cn 时自动保存登录 Cookie"
+    default_value: "true"
+    options: ["true", "false"]
+  ENABLE_SCHEDULE:
+    name: "每日自动签到"
+    description: "开启后每天定时签到已关注超话"
+    default_value: "true"
+    options: ["true", "false"]
+
+scriptings:
+  - http_request:
+      name: "捕获微博 Cookie"
+      match: "^https://m\\.weibo\\.cn/(api/config|api/container|p/index)"
+      env:
+        ENABLE_CAPTURE: "{{{ENABLE_CAPTURE}}}"
+      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-super-checkin.js?v=1"
+      timeout: 15
+      update_interval: 86400
+  - schedule:
+      name: "每日超话签到"
+      cron: "30 8 * * *"
+      env:
+        ENABLE_SCHEDULE: "{{{ENABLE_SCHEDULE}}}"
+      script_url: "https://raw.githubusercontent.com/buleeee1111/egern-weibo-checkin/main/weibo-super-checkin.js?v=1"
+      timeout: 120
+      update_interval: 86400
+
+mitm:
+  hostnames:
+    includes:
+      - m.weibo.cn
