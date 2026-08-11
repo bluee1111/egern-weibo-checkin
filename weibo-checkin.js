@@ -59,21 +59,36 @@ async function requestJson(ctx, url, options = {}) {
     headers: options.headers || BASE_HEADERS,
   };
   if (options.body !== undefined) requestOptions.body = options.body;
-  const response = method === "POST"
-    ? await ctx.http.post(url, requestOptions)
-    : await ctx.http.get(url, requestOptions);
+  let response;
+  try {
+    response = method === "POST"
+      ? await ctx.http.post(url, requestOptions)
+      : await ctx.http.get(url, requestOptions);
+  } catch (error) {
+    const message = String(error?.message || error || "");
+    if (/JSON Parse|Unexpected identifier|Unexpected token/i.test(message)) {
+      throw new Error("微博 Cookie 失效或触发风控（接口返回非 JSON），请重新打开 m.weibo.cn 登录并刷新");
+    }
+    throw new Error(`微博接口请求失败：${message.slice(0, 180)}`);
+  }
   if (response.status < 200 || response.status >= 300) {
     let detail = "";
     try {
       const raw = await response.text();
-      detail = String(raw || "").replace(/\\s+/g, " ").slice(0, 240);
+      detail = String(raw || "").replace(/\s+/g, " ").slice(0, 240);
     } catch (_) {}
     const path = (() => {
       try { return new URL(url).pathname; } catch (_) { return "request"; }
     })();
     throw new Error(`HTTP ${response.status} ${path}${detail ? `：${detail}` : ""}`);
   }
-  return response.json();
+  const raw = await response.text();
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    const compact = String(raw || "").replace(/\s+/g, " ").slice(0, 180);
+    throw new Error(`微博接口返回非 JSON（可能是 Cookie 失效或风控）：${compact || "空响应"}`);
+  }
 }
 
 async function fetchLoginState(ctx, cookie) {
