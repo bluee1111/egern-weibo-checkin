@@ -130,46 +130,31 @@ async function captureCookie(ctx) {
     return;
   }
   const cookie = getHeader(ctx.request?.headers, "cookie").trim();
-  if (!cookie || !/(?:^|;\s*)SUB=/i.test(cookie)) {
-    await notifyCaptureDiagnostic(ctx, "已检测到微博请求，但请求未带 SUB 登录 Cookie；请在微博 App 点“我”后下拉刷新");
-    console.log("微博请求未包含有效 SUB Cookie，跳过保存");
+  if (!cookie) {
+    await notifyCaptureDiagnostic(ctx, "请求没有 Cookie，请在微博 App 点“我”后刷新");
     return;
   }
 
-  let state;
-  try {
-    state = await fetchLoginState(ctx, cookie);
-  } catch (error) {
-    console.log(`验证微博 Cookie 失败：${error.message || error}`);
-    return;
-  }
-  if (!state.login) {
-    console.log("微博 Cookie 当前未登录，跳过保存");
-    return;
-  }
-
+  // 捕获阶段只保存请求 Cookie，不在 HTTP 请求脚本中二次调用微博 API。
+  // 二次验证放到定时签到，避免 App 请求脚本被微博 API 阻塞。
+  const accountId = cookieFingerprint(cookie);
   const accounts = ctx.storage.getJSON(STORAGE_KEY) || {};
-  const accountId = state.uid || cookieFingerprint(cookie);
   const changed = accounts[accountId] !== cookie;
   accounts[accountId] = cookie;
   ctx.storage.setJSON(STORAGE_KEY, accounts);
 
-  // 按账号记录指纹：首次抓取或 Cookie 变化时都通知。
   const fingerprints = ctx.storage.getJSON(LAST_CAPTURE_KEY) || {};
   const previousFingerprint = fingerprints[accountId] || "";
-  const fingerprint = cookieFingerprint(cookie);
-  const shouldNotify = previousFingerprint !== fingerprint;
-  fingerprints[accountId] = fingerprint;
+  fingerprints[accountId] = accountId;
   ctx.storage.setJSON(LAST_CAPTURE_KEY, fingerprints);
-  console.log(`微博账号 ${accountId} Cookie ${changed ? "已保存" : "无变化"}`);
 
-  if (shouldNotify) {
+  if (changed || previousFingerprint !== accountId) {
     ctx.notify({
-      title: "微博超话签到",
+      title: "✅ 微博 Cookie 获取成功",
       subtitle: `账号 ${accountId}`,
-      body: changed ? "Cookie 已更新，自动签到仍在运行" : "Cookie 获取成功，已开启自动签到",
+      body: "Cookie 已保存，自动签到已就绪",
       sound: true,
-      duration: 5,
+      duration: 6,
     });
   }
 }
