@@ -37,6 +37,17 @@ function getHeader(headers, name) {
   );
 }
 
+
+function safeGetJSON(ctx, key) {
+  try {
+    const value = ctx.storage.getJSON(key);
+    return value && typeof value === "object" ? value : {};
+  } catch (_) {
+    // 旧版本可能写入过非 JSON 脏数据，读不出来就当空处理
+    return {};
+  }
+}
+
 function cookieHeaders(cookie, referer = "https://m.weibo.cn/") {
   return { ...BASE_HEADERS, Cookie: cookie, Referer: referer };
 }
@@ -122,14 +133,14 @@ async function captureCookie(ctx) {
     return;
   }
 
-  const accounts = ctx.storage.getJSON(STORAGE_KEY) || {};
+  const accounts = safeGetJSON(ctx, STORAGE_KEY) || {};
   const accountId = state.uid || cookieFingerprint(cookie);
   const changed = accounts[accountId] !== cookie;
   accounts[accountId] = cookie;
   ctx.storage.setJSON(STORAGE_KEY, accounts);
 
   // 按账号记录指纹：首次抓取或 Cookie 变化时都通知。
-  const fingerprints = ctx.storage.getJSON(LAST_CAPTURE_KEY) || {};
+  const fingerprints = safeGetJSON(ctx, LAST_CAPTURE_KEY) || {};
   const previousFingerprint = fingerprints[accountId] || "";
   const fingerprint = cookieFingerprint(cookie);
   const shouldNotify = previousFingerprint !== fingerprint;
@@ -271,7 +282,7 @@ async function checkinAccount(ctx, accountId, cookie) {
 }
 
 async function runCheckin(ctx) {
-  const accounts = ctx.storage.getJSON(STORAGE_KEY) || {};
+  const accounts = safeGetJSON(ctx, STORAGE_KEY) || {};
   const entries = Object.entries(accounts);
   if (!entries.length) {
     const result = {
@@ -333,7 +344,7 @@ async function runCheckin(ctx) {
 }
 
 function renderWidget(ctx) {
-  const result = ctx.storage.getJSON(LAST_RESULT_KEY);
+  const result = safeGetJSON(ctx, LAST_RESULT_KEY);
   const signedToday = result && result.day === currentDay();
   const color = !signedToday ? "#FDE68A" : result.failed ? "#FCA5A5" : "#86EFAC";
   return {
@@ -396,10 +407,14 @@ export default async function (ctx) {
     if (ctx.widgetFamily) return renderWidget(ctx);
     await runCheckin(ctx);
   } catch (error) {
-    console.log(`微博超话脚本异常：${error.stack || error.message || error}`);
+    const rawMessage = String(error?.message || error || "");
+    const message = /JSON Parse|Unexpected identifier|Unexpected token/i.test(rawMessage)
+      ? "微博 Cookie 失效或触发风控，请重新打开 m.weibo.cn 登录并刷新页面"
+      : rawMessage;
+    console.log(`微博超话脚本异常：${message}`);
     ctx.notify({
       title: "❌ 微博超话脚本异常",
-      body: error.message || String(error),
+      body: message.slice(0, 180),
       sound: true,
       duration: 6,
     });
@@ -408,7 +423,7 @@ export default async function (ctx) {
       return ctx.respond({
         status: 500,
         headers: { "Content-Type": "text/plain; charset=utf-8" },
-        body: `微博超话签到失败：${error.message || String(error)}`,
+        body: `微博超话签到失败：${message.slice(0, 180)}`,
       });
     }
   }
