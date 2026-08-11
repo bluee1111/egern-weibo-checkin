@@ -96,11 +96,12 @@ async function fetchLoginState(ctx, cookie) {
   };
 }
 
-async function notifyCaptureDiagnostic(ctx, body) {
+async function notifyCaptureDiagnostic(ctx, body, stage = "general") {
   const now = Date.now();
-  const last = Number(ctx.storage.get(CAPTURE_DIAG_KEY) || 0);
-  if (now - last < 30 * 1000) return;
-  ctx.storage.set(CAPTURE_DIAG_KEY, String(now));
+  const key = `${CAPTURE_DIAG_KEY}.${stage}`;
+  const last = Number(ctx.storage.get(key) || 0);
+  if (now - last < 5 * 60 * 1000) return;
+  ctx.storage.set(key, String(now));
   ctx.notify({
     title: "微博 Cookie 获取诊断",
     body,
@@ -124,14 +125,14 @@ async function notifyRuntime(ctx) {
 
 async function captureCookie(ctx) {
   await notifyRuntime(ctx);
-  await notifyCaptureDiagnostic(ctx, "已检测到微博请求，正在获取 Cookie");
+  await notifyCaptureDiagnostic(ctx, "已检测到微博请求，正在获取 Cookie", "start");
   if (!captureEnabled(ctx)) {
-    await notifyCaptureDiagnostic(ctx, "已检测到微博请求，但“自动获取 Cookie”开关已关闭");
+    await notifyCaptureDiagnostic(ctx, "已检测到微博请求，但“自动获取 Cookie”开关已关闭", "disabled");
     return;
   }
   const cookie = getHeader(ctx.request?.headers, "cookie").trim();
   if (!cookie) {
-    await notifyCaptureDiagnostic(ctx, "请求没有 Cookie，请在微博 App 点“我”后刷新");
+    await notifyCaptureDiagnostic(ctx, "请求没有 Cookie，请在微博 App 点“我”后刷新", "empty");
     return;
   }
 
@@ -263,9 +264,9 @@ async function checkinAccount(ctx, accountId, cookie) {
       expired[accountId] = currentDay();
       ctx.storage.setJSON(COOKIE_EXPIRED_KEY, expired);
       ctx.notify({
-        title: "⚠️ 微博 Cookie 失效",
-        subtitle: `账号 ${accountId}`,
-        body: "请打开微博 App，点击“我”并刷新页面重新获取 Cookie",
+        title: "⚠️ 微博 Cookie 获取失败",
+      subtitle: `账号 ${accountId}`,
+      body: "Cookie 已捕获但微博请求未通过登录验证，请重新打开微博 App 点“我”并刷新页面",
         sound: true,
         duration: 8,
       });
