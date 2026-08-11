@@ -124,6 +124,7 @@ async function notifyRuntime(ctx) {
 
 async function captureCookie(ctx) {
   await notifyRuntime(ctx);
+  await notifyCaptureDiagnostic(ctx, "已检测到微博请求，正在获取 Cookie");
   if (!captureEnabled(ctx)) {
     await notifyCaptureDiagnostic(ctx, "已检测到微博请求，但“自动获取 Cookie”开关已关闭");
     return;
