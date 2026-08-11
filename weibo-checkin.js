@@ -1,6 +1,7 @@
 const STORAGE_KEY = "weibo_super_topic_accounts";
 const LAST_CAPTURE_KEY = "weibo_super_topic_last_capture";
 const LAST_RESULT_KEY = "weibo_super_topic_last_result";
+const COOKIE_EXPIRED_KEY = "weibo_super_topic_cookie_expired";
 const MANUAL_TRIGGER_URL = "http://weibo-checkin.local/run";
 const DIRECT = "DIRECT";
 const USER_AGENT =
@@ -35,6 +36,11 @@ function getHeader(headers, name) {
     headers[name.toLowerCase()] ||
     ""
   );
+}
+
+function captureEnabled(ctx) {
+  const value = ctx.env?.ENABLE_CAPTURE ?? ctx.args?.ENABLE_CAPTURE ?? "true";
+  return String(value).toLowerCase() !== "false";
 }
 
 function cookieHeaders(cookie, referer = "https://m.weibo.cn/") {
@@ -89,6 +95,7 @@ async function fetchLoginState(ctx, cookie) {
 }
 
 async function captureCookie(ctx) {
+  if (!captureEnabled(ctx)) return;
   const cookie = getHeader(ctx.request?.headers, "cookie").trim();
   if (!cookie || !/(?:^|;\s*)SUB=/i.test(cookie)) {
     console.log("微博请求未包含有效 SUB Cookie，跳过保存");
@@ -231,7 +238,26 @@ async function signTopic(ctx, cookie, topic, state) {
 
 async function checkinAccount(ctx, accountId, cookie) {
   const state = await fetchLoginState(ctx, cookie);
-  if (!state.login) throw new Error("Cookie 已失效，请重新打开微博获取");
+  if (!state.login) {
+    const expired = ctx.storage.getJSON(COOKIE_EXPIRED_KEY) || {};
+    if (!expired[accountId]) {
+      expired[accountId] = currentDay();
+      ctx.storage.setJSON(COOKIE_EXPIRED_KEY, expired);
+      ctx.notify({
+        title: "⚠️ 微博 Cookie 失效",
+        subtitle: `账号 ${accountId}`,
+        body: "请打开微博 App，点击“我”并刷新页面重新获取 Cookie",
+        sound: true,
+        duration: 8,
+      });
+    }
+    throw new Error("Cookie 已失效，请打开微博 App 点击“我”重新获取");
+  }
+  const expired = ctx.storage.getJSON(COOKIE_EXPIRED_KEY) || {};
+  if (expired[accountId]) {
+    delete expired[accountId];
+    ctx.storage.setJSON(COOKIE_EXPIRED_KEY, expired);
+  }
   const topics = await getFollowedTopics(ctx, cookie);
   let success = 0;
   let already = 0;
