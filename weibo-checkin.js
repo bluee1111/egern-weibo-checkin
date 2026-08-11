@@ -81,7 +81,13 @@ async function requestJson(ctx, url, options = {}) {
     })();
     throw new Error(`HTTP ${response.status} ${path}${detail ? `：${detail}` : ""}`);
   }
-  return response.json();
+  const raw = await response.text();
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    const compact = String(raw || "").replace(/\s+/g, " ").slice(0, 180);
+    throw new Error(`微博接口返回非 JSON（HTTP ${response.status}）：${compact || "空响应"}`);
+  }
 }
 
 async function fetchLoginState(ctx, cookie) {
