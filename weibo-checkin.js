@@ -2,6 +2,7 @@ const STORAGE_KEY = "weibo_super_topic_accounts";
 const LAST_CAPTURE_KEY = "weibo_super_topic_last_capture";
 const LAST_RESULT_KEY = "weibo_super_topic_last_result";
 const COOKIE_EXPIRED_KEY = "weibo_super_topic_cookie_expired";
+const CAPTURE_DIAG_KEY = "weibo_super_topic_capture_diagnostic";
 const MANUAL_TRIGGER_URL = "http://weibo-checkin.local/run";
 const DIRECT = "DIRECT";
 const USER_AGENT =
@@ -94,10 +95,27 @@ async function fetchLoginState(ctx, cookie) {
   };
 }
 
+async function notifyCaptureDiagnostic(ctx, body) {
+  const now = Date.now();
+  const last = Number(ctx.storage.get(CAPTURE_DIAG_KEY) || 0);
+  if (now - last < 5 * 60 * 1000) return;
+  ctx.storage.set(CAPTURE_DIAG_KEY, String(now));
+  ctx.notify({
+    title: "微博 Cookie 获取诊断",
+    body,
+    sound: true,
+    duration: 6,
+  });
+}
+
 async function captureCookie(ctx) {
-  if (!captureEnabled(ctx)) return;
+  if (!captureEnabled(ctx)) {
+    await notifyCaptureDiagnostic(ctx, "已检测到微博请求，但“自动获取 Cookie”开关已关闭");
+    return;
+  }
   const cookie = getHeader(ctx.request?.headers, "cookie").trim();
   if (!cookie || !/(?:^|;\s*)SUB=/i.test(cookie)) {
+    await notifyCaptureDiagnostic(ctx, "已检测到微博请求，但请求未带 SUB 登录 Cookie；请在微博 App 点“我”后下拉刷新");
     console.log("微博请求未包含有效 SUB Cookie，跳过保存");
     return;
   }
