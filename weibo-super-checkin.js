@@ -1,5 +1,6 @@
 // 微博超话自动签到 - Egern
-// 干净版 v1：网页 Cookie 捕获 + 每日签到 + 通知
+// 干净版 v2：网页 Cookie 捕获 + 每日签到 + 通知
+// 变更：关闭「自动获取 Cookie」开关时静默返回，不发任何通知（含诊断）；签到通知保留
 const STORAGE_KEY = "weibo_super_topic_accounts";
 const LAST_CAPTURE_KEY = "weibo_super_topic_last_capture";
 const LAST_RESULT_KEY = "weibo_super_topic_last_result";
@@ -136,8 +137,13 @@ async function fetchLoginState(ctx, cookie) {
 }
 
 // 捕获钩子：只读请求 Cookie 并保存，不调用第二个接口验证（会阻塞钩子）
+// v2：当「自动获取 Cookie」开关关闭时，静默返回——不发任何通知（含诊断），也不保存 Cookie。
+// 该开关只影响 Cookie 捕获；每日签到通知（成功/失败/异常）由 runCheckin 独立控制，不受影响。
 async function captureCookie(ctx) {
-  if (String(ctx.env?.ENABLE_CAPTURE ?? "true") !== "true") return;
+  if (String(ctx.env?.ENABLE_CAPTURE ?? "true") !== "true") {
+    // 自动获取 Cookie 已关闭：完全静默，不发通知
+    return;
+  }
   const cookie = getHeader(ctx.request?.headers, "cookie").trim();
   if (!cookie || !/(?:^|;\s*)SUB=/i.test(cookie)) {
     console.log("微博请求未包含有效 SUB Cookie，跳过保存");
