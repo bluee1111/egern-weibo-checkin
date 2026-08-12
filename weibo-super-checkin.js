@@ -1,6 +1,12 @@
 // 微博超话自动签到 - Egern
-// 干净版 v2：网页 Cookie 捕获 + 每日签到 + 通知
-// 变更：关闭「自动获取 Cookie」开关时静默返回，不发任何通知（含诊断）；签到通知保留
+// 干净版 v3：网页 Cookie 捕获 + 每日签到 + 通知
+// v3: env 检查宽容——只有明确 false 才禁用；{{{...}}} 字面量/空值按开启处理（兼容不渲染 env_schema 的 Egern 版本）
+function envEnabled(ctx, key) {
+  const raw = String(ctx.env?.[key] ?? "");
+  if (raw === "" || raw.includes("{{{")) return true;
+  return raw === "true";
+}
+
 const STORAGE_KEY = "weibo_super_topic_accounts";
 const LAST_CAPTURE_KEY = "weibo_super_topic_last_capture";
 const LAST_RESULT_KEY = "weibo_super_topic_last_result";
@@ -140,7 +146,7 @@ async function fetchLoginState(ctx, cookie) {
 // v2：当「自动获取 Cookie」开关关闭时，静默返回——不发任何通知（含诊断），也不保存 Cookie。
 // 该开关只影响 Cookie 捕获；每日签到通知（成功/失败/异常）由 runCheckin 独立控制，不受影响。
 async function captureCookie(ctx) {
-  if (String(ctx.env?.ENABLE_CAPTURE ?? "true") !== "true") {
+  if (!envEnabled(ctx, "ENABLE_CAPTURE")) {
     // 自动获取 Cookie 已关闭：完全静默，不发通知
     return;
   }
@@ -299,7 +305,7 @@ async function checkinAccount(ctx, accountId, cookie) {
 }
 
 async function runCheckin(ctx) {
-  if (String(ctx.env?.ENABLE_SCHEDULE ?? "true") !== "true") return null;
+  if (!envEnabled(ctx, "ENABLE_SCHEDULE")) return null;
   const accounts = safeGetJSON(ctx, STORAGE_KEY);
   const entries = Object.entries(accounts);
   if (!entries.length) {
