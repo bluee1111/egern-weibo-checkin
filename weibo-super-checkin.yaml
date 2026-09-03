@@ -5,12 +5,12 @@ homepage: "https://github.com/bluee1111/egern-weibo-checkin"
 icon: "checkmark.circle.fill"
 
 compat_arguments:
-  CronExp: "0 8 * * *"
+  CronExp: "0 5 * * *"
   ENABLE_CAPTURE: "true"
   ENABLE_SCHEDULE: "true"
 
 compat_arguments_desc: |
-  CronExp=每日签到时间（Cron 表达式），默认 0 8 * * * 即每天 08:00
+  CronExp=每日签到时间（Cron 表达式），默认 0 5 * * * 即每天 05:00
   ENABLE_CAPTURE=自动获取 Cookie（true 开 / false 关），默认 true
   ENABLE_SCHEDULE=每日自动签到（true 开 / false 关），默认 true
 
@@ -36,7 +36,7 @@ scriptings:
       match: "^https://m\\.weibo\\.cn/(api/config|api/container|p/index)"
       env:
         ENABLE_CAPTURE: "{{{ENABLE_CAPTURE}}}"
-      script_url: "https://raw.githubusercontent.com/bluee1111/egern-weibo-checkin/main/weibo-super-checkin.js?v=4"
+      script_url: "https://raw.githubusercontent.com/bluee1111/egern-weibo-checkin/main/weibo-super-checkin.js?v=5"
       timeout: 15
       update_interval: 86400
   - schedule:
@@ -44,7 +44,7 @@ scriptings:
       cron: "{{{CronExp}}}"
       env:
         ENABLE_SCHEDULE: "{{{ENABLE_SCHEDULE}}}"
-      script_url: "https://raw.githubusercontent.com/bluee1111/egern-weibo-checkin/main/weibo-super-checkin.js?v=4"
+      script_url: "https://raw.githubusercontent.com/bluee1111/egern-weibo-checkin/main/weibo-super-checkin.js?v=5"
       timeout: 120
       update_interval: 86400
 
